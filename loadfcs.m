@@ -18,7 +18,7 @@ welllist = strrep(welllist,' ','');
 welllist = reshape(welllist,12,8)';
 map.well = welllist;
 
-%%
+%% Extract sample labels from platemap
 labellist = regexp(platemap{:,:},'map_\w*','match');
 labellist = string(labellist(~cellfun('isempty',labellist)));
 for n = 1:numel(labellist)

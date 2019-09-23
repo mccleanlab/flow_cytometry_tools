@@ -1,11 +1,10 @@
 function gateOut = densityGate(channels2gate, channels2scale, channels2thresh, channels2gmm)
-%
-% channels2gate = {'BL1-H','YL1-H';'FSC-A','FSC-H';};
-% channels2scale = {'log','log'; 'linear','linear'; };
-% channels2thresh = [0.7, 0.9, 1];
-% channels2gmm = [2, 2; 2, 1; 0, 0];
 
-nbins = 128;
+warning('off','stats:gmdistribution:cluster:MissingData');
+warning('off','stats:gmdistribution:posterior:MissingData');
+warning('off','stats:gmdistribution:MissingData');
+
+nbins = 256;
 
 % Load fcs file
 [files, folder] = uigetfile('.fcs','Select a .fcs file to gate');
@@ -52,7 +51,7 @@ for nGate = 1:size(channels2gate,1)
     
     % Select high-density data
     idxhist = all(~isnan([xdata,ydata]),2); % Index to exclude nans from histcounts
-    [n, xedge, yedge, xbin, ybin] = histcounts2(xdata(idxhist),ydata(idxhist),nbins,'normalization','probability');
+    [n, xedge, yedge] = histcounts2(xdata(idxhist),ydata(idxhist),nbins,'normalization','probability');
     n = imgaussfilt(n,1.5);
     nlist = sort(n(:),'descend');
     nkeep = cumsum(nlist);
@@ -73,11 +72,11 @@ for nGate = 1:size(channels2gate,1)
     ylim auto
     ax = findall(gcf, 'type', 'axes');
     delete(ax(1))
-    pause
-    hold on
+    pause    
+    hold on    
+%     scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 255]./255);
+%     pause
     
-    scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 255]./255);
-    pause
     ngmm = channels2gmm(nGate,1);
     cgmm = channels2gmm(nGate,2);
     if ngmm~=0
@@ -99,21 +98,18 @@ for nGate = 1:size(channels2gate,1)
         elseif cgmm==2
             idx = idxgm==d(2,2);
         end
-    end
+    end    
     
     xpoly = xdata(idx);
     xpoly = xpoly(~any(isnan(xpoly) | isinf(xpoly),2),:);
     ypoly = ydata(idx);
     ypoly = ypoly(~any(isnan(ypoly) | isinf(ypoly),2),:);
-    gatePts = boundary(xpoly,ypoly);
+    gatePts = boundary(xpoly,ypoly,0);
     gatePts = [xpoly(gatePts), ypoly(gatePts)];
     gateidx = inpolygon(xdata, ydata, gatePts(:,1),gatePts(:,2));
-    pgon = polyshape(gatePts(:,1),gatePts(:,2));
-    
-    plot(pgon,'EdgeColor',[255 94 105]./255,'FaceAlpha',0,'LineWidth',1.5);
-    pause
+        
     scatter(xdata(gateidx),ydata(gateidx),2,'filled','MarkerFaceColor',[255 94 105]./255);
-    pause
+    pause    
     close all
     
     gate{nGate,1} = channels2gate(nGate,:);

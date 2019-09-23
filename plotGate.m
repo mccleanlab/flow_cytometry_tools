@@ -41,11 +41,11 @@ for nGate=1:size(gate,1)
     
     gatePts = gate{nGate,3};
     idx{nGate} = inpolygon(xdata, ydata, gatePts(:,1),gatePts(:,2));    
-    if nGate>1
-        idxp = idx{nGate-1};
-        xdata = xdata(idxp);
-        ydata = ydata(idxp);
-    end
+%     if nGate>1
+%         idxp = idx{nGate-1};
+%         xdata = xdata(idxp);
+%         ydata = ydata(idxp);
+%     end
     
     n0 = length(xdata);
     edgeidx = any([xdata==max(xdata), ydata==max(ydata)],2);

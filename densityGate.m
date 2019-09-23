@@ -1,8 +1,11 @@
-% function gateOut = densityGate(channels2gate, channels2scale, threshold)
-clearvars
-channels2gate = {'FSC-A', 'SSC-A'}%; 'FSC-A', 'FSC-H'; 'BL2-H', 'FSC-H'};
-channels2scale = {'linear', 'linear'}%; 'linear', 'linear'; 'log', 'linear'};
-threshhold = 0.5;
+function gateOut = densityGate(channels2gate, channels2scale, channels2thresh, channels2gmm)
+%
+% channels2gate = {'BL1-H','YL1-H';'FSC-A','FSC-H';};
+% channels2scale = {'log','log'; 'linear','linear'; };
+% channels2thresh = [0.7, 0.9, 1];
+% channels2gmm = [2, 2; 2, 1; 0, 0];
+
+nbins = 128;
 
 % Load fcs file
 [files, folder] = uigetfile('.fcs','Select a .fcs file to gate');
@@ -20,10 +23,11 @@ for nGate = 1:size(channels2gate,1)
     % Get index of channels for gating
     cX = find(strcmp({fcshdr.par.name},channels2gate(nGate,1))==1);
     cY = find(strcmp({fcshdr.par.name},channels2gate(nGate,2))==1);
+    thresh = channels2thresh(nGate);
     
     xdata = fcsdat(:,cX);
     xdata(xdata<=0)=nan;
-    xdata(xdata==max(xdata))=nan;    
+    xdata(xdata==max(xdata))=nan;
     ydata = fcsdat(:,cY);
     ydata(ydata<=0)=nan;
     ydata(ydata==max(ydata))=nan;
@@ -37,29 +41,32 @@ for nGate = 1:size(channels2gate,1)
         ydata = log(ydata);
     end
     
+    % Remove data previously gated out
     if nGate>1
-        idxp = gate{nGate-1,3};
-        xdata = xdata(idxp);
-        ydata = ydata(idxp);
+        idxp = gate{nGate-1,4};
+        %         xdata = xdata(idxp);
+        %         ydata = ydata(idxp);
+        xdata(idxp)=nan;
+        ydata(idxp)=nan;
     end
-            
-    [n, xedge, yedge, xbin, ybin] = histcounts2(xdata,ydata,100,'normalization','probability');
+    
+    % Select high-density data
+    idxhist = all(~isnan([xdata,ydata]),2); % Index to exclude nans from histcounts
+    [n, xedge, yedge, xbin, ybin] = histcounts2(xdata(idxhist),ydata(idxhist),nbins,'normalization','probability');
     n = imgaussfilt(n,1.5);
     nlist = sort(n(:),'descend');
     nkeep = cumsum(nlist);
-    nkeep = 1:find(nkeep>threshhold,1 );
+    nkeep = 1:find(nkeep>thresh,1 );
     nkeep = nlist(nkeep);
     nkeep = ismember(n,nkeep);
-    
     [i,j] = find(nkeep~=0);
     xbounds = [xedge(i);xedge(i+1)]';
-    ybounds = [yedge(j);yedge(j+1)]';    
+    ybounds = [yedge(j);yedge(j+1)]';
     idx = any(xdata >= xbounds(:,1)' & xdata <= xbounds(:,2)' & ydata >= ybounds(:,1)' & ydata <= ybounds(:,2)', 2);
     
     % Plot
     clear g
     g = gramm('x',xdata,'y',ydata);
-    nbins = 1024;
     g.stat_bin2d('nbins',[nbins nbins]);
     g.draw();
     xlim auto
@@ -68,7 +75,52 @@ for nGate = 1:size(channels2gate,1)
     delete(ax(1))
     pause
     hold on
-    scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 105]./255);
-%     pause
-%     close all
+    
+    scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 255]./255);
+    pause
+    ngmm = channels2gmm(nGate,1);
+    cgmm = channels2gmm(nGate,2);
+    if ngmm~=0
+        xdata(~idx)=nan;
+        ydata(~idx)=nan;
+        options = statset('MaxIter',10000);
+        gm = fitgmdist([xdata,ydata],ngmm,'Options',options);
+        gmthresh = [0.4 0.6];
+        P = posterior(gm,[xdata,ydata]);
+        idxgm = cluster(gm,[xdata,ydata]);
+        idxboth = find(P(:,1)>=gmthresh(1) & P(:,1)<=gmthresh(2));
+        xdata(idxboth)=nan;
+        ydata(idxboth)=nan;
+        
+        d = [norm(nanmean([xdata(idxgm==1),ydata(idxgm==1)])),1;norm(nanmean([xdata(idxgm==2),ydata(idxgm==2)])),2];
+        d = sortrows(d,1,'ascend');
+        if cgmm==1
+            idx = idxgm==d(1,2);
+        elseif cgmm==2
+            idx = idxgm==d(2,2);
+        end
+    end
+    
+    xpoly = xdata(idx);
+    xpoly = xpoly(~any(isnan(xpoly) | isinf(xpoly),2),:);
+    ypoly = ydata(idx);
+    ypoly = ypoly(~any(isnan(ypoly) | isinf(ypoly),2),:);
+    gatePts = boundary(xpoly,ypoly);
+    gatePts = [xpoly(gatePts), ypoly(gatePts)];
+    gateidx = inpolygon(xdata, ydata, gatePts(:,1),gatePts(:,2));
+    pgon = polyshape(gatePts(:,1),gatePts(:,2));
+    
+    plot(pgon,'EdgeColor',[255 94 105]./255,'FaceAlpha',0,'LineWidth',1.5);
+    pause
+    scatter(xdata(gateidx),ydata(gateidx),2,'filled','MarkerFaceColor',[255 94 105]./255);
+    pause
+    close all
+    
+    gate{nGate,1} = channels2gate(nGate,:);
+    gate{nGate,2} = channels2scale(nGate,:);
+    gate{nGate,3} = gatePts;
+    gate{nGate,4} = idx;
+    
 end
+
+gateOut = gate;

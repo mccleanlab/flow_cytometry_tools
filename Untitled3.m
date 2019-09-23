@@ -1,52 +1,40 @@
 %%
 clc
 clearvars -except data
+threshhold = 0.5;
 
-x = data.BL2H;
-x(x<=0)=nan;
-x = log(x);
+xdata = data.SSCH;
+xdata(xdata<=0)=nan;
+xdata(xdata==max(xdata))=nan;
+xdata = log(xdata);
+ydata = data.FSCH;
+ydata(ydata<=0)=nan;
+ydata(ydata==max(ydata))=nan;
 
-y = data.FSCH;
-y(y<=0)=nan;
+[n, xedge, yedge, xbin, ybin] = histcounts2(xdata,ydata,256,'normalization','probability');
+n = imgaussfilt(n,1.5);
+nlist = sort(n(:),'descend');
+nkeep = cumsum(nlist);
+nkeep = 1:find(nkeep>threshhold,1 );
+nkeep = nlist(nkeep);
+nkeep = ismember(n,nkeep);
 
-nevents = length(x);
-fevents = 0.3;
+[i,j] = find(nkeep~=0);
+xbounds = [xedge(i);xedge(i+1)]';
+ybounds = [yedge(j);yedge(j+1)]';
 
-h = histogram2(x,y,100);
-xbins = h.XBinEdges;
-ybins = h.YBinEdges;
-cts = h.Values;
+idx = any(xdata >= xbounds(:,1)' & xdata <= xbounds(:,2)' & ydata >= ybounds(:,1)' & ydata <= ybounds(:,2)', 2);
 
-ctlist = cts(:);
-
-% n2 = imgaussfilt(n,3);
-% surf(n2,'edgecolor','none')
-
-ctlist = sort(ctlist,'descend');
-ctlist = unique(ctlist,'stable');
-
-data.densitygate(:,1) = 0;
-
-for i = 1%:numel(ctlist)
-    val = ctlist(i);
-    [xloc, yloc] = find(cts>=val);
-    xval = min(xbins(xloc));
-    yval = min(ybins(yloc));
-    xx = x>xval & ~isnan(x);
-    yy = y>yval & ~isnan(y);
-    idx = any([xx,yy],2);
-end
-
-data.idx = idx;
-histogram2(x,y,100);
-
-
-return
-%% Add labels to data for plotting
-g = gramm('x',x,'y',y,'color', idx, 'subset', data.FSCH>0 & data.BL2H>0);
-nbins = 1000;
+% Plot
+clear g
+g = gramm('x',xdata,'y',ydata);
+nbins = 1024;
 g.stat_bin2d('nbins',[nbins nbins]);
-g.geom_point();
 g.draw();
 xlim auto
 ylim auto
+ax = findall(gcf, 'type', 'axes')
+delete(ax(1))
+pause
+hold on
+scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 105]./255) ;

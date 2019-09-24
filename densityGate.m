@@ -1,4 +1,4 @@
-function gateOut = densityGate(channels2gate, channels2scale, channels2thresh, channels2gmm)
+function gateOut = densityGate(channels2gate, channels2scale, fraction2keep, channels2gmm)
 
 warning('off','stats:gmdistribution:cluster:MissingData');
 warning('off','stats:gmdistribution:posterior:MissingData');
@@ -22,14 +22,13 @@ for nGate = 1:size(channels2gate,1)
     % Get index of channels for gating
     cX = find(strcmp({fcshdr.par.name},channels2gate(nGate,1))==1);
     cY = find(strcmp({fcshdr.par.name},channels2gate(nGate,2))==1);
-    thresh = channels2thresh(nGate);
+    thresh = fraction2keep(nGate);
     
     xdata = fcsdat(:,cX);
-    xdata(xdata<=0)=nan;
-    xdata(xdata==max(xdata))=nan;
     ydata = fcsdat(:,cY);
-    ydata(ydata<=0)=nan;
-    ydata(ydata==max(ydata))=nan;
+    idx = any([xdata<=0 | xdata==max(xdata), ydata<=0 | ydata==max(ydata)],2);
+    xdata(idx)=nan;
+    ydata(idx)=nan;
     
     % Scale data if necessary
     if strcmp(channels2scale(nGate,1),'log')
@@ -72,17 +71,17 @@ for nGate = 1:size(channels2gate,1)
     ylim auto
     ax = findall(gcf, 'type', 'axes');
     delete(ax(1))
-    pause    
-    hold on    
-%     scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 255]./255);
-%     pause
+    pause
+    hold on
+    %     scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 255]./255);
+    %     pause
     
     ngmm = channels2gmm(nGate,1);
     cgmm = channels2gmm(nGate,2);
     if ngmm~=0
         xdata(~idx)=nan;
         ydata(~idx)=nan;
-        options = statset('MaxIter',10000);
+        options = statset('MaxIter',1000);
         gm = fitgmdist([xdata,ydata],ngmm,'Options',options);
         gmthresh = [0.4 0.6];
         P = posterior(gm,[xdata,ydata]);
@@ -93,29 +92,38 @@ for nGate = 1:size(channels2gate,1)
         
         d = [norm(nanmean([xdata(idxgm==1),ydata(idxgm==1)])),1;norm(nanmean([xdata(idxgm==2),ydata(idxgm==2)])),2];
         d = sortrows(d,1,'ascend');
-        if cgmm==1
+        if cgmm==0
+            idx = any([~isnan(idxgm) & ~isinf(idxgm)],2);
+        elseif cgmm==1
             idx = idxgm==d(1,2);
         elseif cgmm==2
             idx = idxgm==d(2,2);
         end
-    end    
+    else
+        gm = {};
+    end
     
-    xpoly = xdata(idx);
-    xpoly = xpoly(~any(isnan(xpoly) | isinf(xpoly),2),:);
-    ypoly = ydata(idx);
-    ypoly = ypoly(~any(isnan(ypoly) | isinf(ypoly),2),:);
-    gatePts = boundary(xpoly,ypoly,0);
-    gatePts = [xpoly(gatePts), ypoly(gatePts)];
-    gateidx = inpolygon(xdata, ydata, gatePts(:,1),gatePts(:,2));
-        
-    scatter(xdata(gateidx),ydata(gateidx),2,'filled','MarkerFaceColor',[255 94 105]./255);
-    pause    
+    if cgmm~=0
+        xpoly = xdata(idx);
+        xpoly = xpoly(~any(isnan(xpoly) | isinf(xpoly),2),:);
+        ypoly = ydata(idx);
+        ypoly = ypoly(~any(isnan(ypoly) | isinf(ypoly),2),:);
+        gatePts = boundary(xpoly,ypoly,0);
+        gatePts = [xpoly(gatePts), ypoly(gatePts)];
+        idx = inpolygon(xdata, ydata, gatePts(:,1),gatePts(:,2));
+        pgon = polyshape(gatePts);
+        plot(pgon,'EdgeColor',[255 94 105]./255,'FaceAlpha',0,'LineWidth',1.5);
+    else
+        scatter(xdata(idx),ydata(idx),2,'filled','MarkerFaceColor',[255 94 105]./255);
+    end
+    pause
     close all
     
     gate{nGate,1} = channels2gate(nGate,:);
     gate{nGate,2} = channels2scale(nGate,:);
     gate{nGate,3} = gatePts;
     gate{nGate,4} = idx;
+    gate{nGate,5} = gm;
     
 end
 

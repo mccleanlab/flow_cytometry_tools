@@ -74,11 +74,11 @@ for nGate = 1:size(channels2gate,1)
     end
      
     % Remove data gated out by previous channel pair (if applicable)
-    if nGate>1
-        111
+    if nGate>1        
         idxp = gate{nGate-1,4};
-        xdata(idxp)=nan;
-        ydata(idxp)=nan;
+         assignin('base','testoutput',{idxp,xdata,ydata});  
+        xdata(idxp) = nan;
+        ydata(idxp) = nan;
     end
     
     % Plot 2d histogram
@@ -145,7 +145,7 @@ for nGate = 1:size(channels2gate,1)
             assignin('base','testoutput',{xdata, ydata, idx_cluster});
         elseif strcmp(clusterMethod, 'kmeans')
             idx_cluster = kmeans([xdata,ydata],5);
-            assignin('base','testoutput',{xdata, ydata, idx_cluster});            
+                     
         end
         
         % Sort clusters by distance from origin

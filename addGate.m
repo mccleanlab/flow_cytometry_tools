@@ -1,7 +1,7 @@
-function dataOut = addGate2(data, gate)
+function dataOut = addGate(data, gate)
 dataOut = data;
 
-for f = 1:numel(data)  
+for f = 1:numel(data)
     
     fcsdat = dataOut(f).fcsdat;
     fcshdr = dataOut(f).fcshdr;
@@ -33,14 +33,19 @@ for f = 1:numel(data)
             ydata = fcsdat{:,cY};
         end
         
-        gatePts = gate{nGate,3};
-        idx = inpolygon(xdata, ydata, gatePts(:,1), gatePts(:,2));
+        
+        for i = 1:numel(gate{nGate,3})
+            gatePts = gate{nGate,3}{1,i};
+            idx0(:,i) = i*double(inpolygon(xdata, ydata, gatePts(:,1), gatePts(:,2)));
+        end
+        
+        idx = max(idx0,[],2);         
         
         gatenamelist{nGate} = gatename;
         gateidxlist{nGate} = idx;
         dataOut(f).fcsdat.(gatename) = idx;
-    end   
-
+    end
+    
     idxnet = all([gateidxlist{:,:}],2);
     dataOut(f).fcsdat.Gate_net = idxnet;
 end

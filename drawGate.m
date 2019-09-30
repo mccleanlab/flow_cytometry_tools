@@ -20,7 +20,7 @@ for nGate = 1:size(channels2gate,1)
     if strcmp(channels2scale(nGate,1),'log')
         xdata = fcsdat(:,cX);
         xdata(xdata<=0) = nan;
-        xdata = log(xdata);
+        xdata = log10(xdata);
     else
         xdata = fcsdat(:,cX);
     end
@@ -28,7 +28,7 @@ for nGate = 1:size(channels2gate,1)
     if strcmp(channels2scale(nGate,2),'log')
         ydata = fcsdat(:,cY);
         ydata(ydata<=0) = nan;
-        ydata = log(ydata);
+        ydata = log10(ydata);
     else
         ydata = fcsdat(:,cY);
     end

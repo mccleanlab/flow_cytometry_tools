@@ -78,6 +78,7 @@ for f = 1:numel(fcslist)
     fcsfields = {fcshdr.par.name};
     fcsfields = strrep(fcsfields,'-','');
     fcsdat = array2table(fcsdat,'VariableNames',fcsfields);
+    fcsdat.sourcefile(:,1) = string(path);
     
     if strcmp(p.Results.Map, 'plate')
         well = regexp(path,'[A-H](1[0-2]|[1-9])','match');
@@ -87,7 +88,7 @@ for f = 1:numel(fcslist)
         for n = 1:numel(fieldlist)
             fname = fieldlist{n};
             fcsdat.(fname)(:,1) = string(map.(fname){i,j});
-        end
+        end        
     end
     
     data(f).fcsdat = fcsdat;

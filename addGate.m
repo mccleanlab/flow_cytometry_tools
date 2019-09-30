@@ -9,6 +9,8 @@ for f = 1:numel(data)
     for nGate=1:size(gate,1)
         xdata = [];
         ydata = [];
+        idx = [];
+        idx0=[];
         
         channels2gate = gate{nGate,1};
         gatename = strrep(channels2gate,'-','');
@@ -20,7 +22,7 @@ for f = 1:numel(data)
         if strcmp(channels2scale(1),'log')
             xdata = fcsdat{:,cX};
             xdata(xdata<=0) = nan;
-            xdata = log(xdata);
+            xdata = log10(xdata);
         else
             xdata = fcsdat{:,cX};
         end
@@ -28,11 +30,10 @@ for f = 1:numel(data)
         if strcmp(channels2scale(2),'log')
             ydata = fcsdat{:,cY};
             ydata(ydata<=0) = nan;
-            ydata = log(ydata);
+            ydata = log10(ydata);
         else
             ydata = fcsdat{:,cY};
-        end
-        
+        end        
         
         for i = 1:numel(gate{nGate,3})
             gatePts = gate{nGate,3}{1,i};

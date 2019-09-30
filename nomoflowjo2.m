@@ -12,7 +12,7 @@ gateParams.channels2gate = {'FSC-A','SSC-A'; 'FSC-A', 'FSC-H' };
 gateParams.channelsscale = {'linear','linear'; 'linear','linear'};
 gateParams.fraction2keep = [0.7, 0.9];
 gateParams.channels2gmm = [2, 2; 2, 1];
-gate = densityGate(gateParams,'ClusterMethod','GMM');
+gate = autoGate(gateParams,'ClusterMethod','GMM');
 
 %% Load data
 data01 = loadfcs('Map','plate');

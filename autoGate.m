@@ -140,7 +140,6 @@ for nGate = 1:size(channels2gate,1)
             ydata(idx_omit) = nan;
         elseif strcmp(clusterMethod, 'Agglomerative')
             idx_cluster = clusterdata([xdata,ydata],'Maxclust',nClusters);
-            assignin('base','testoutput',{xdata, ydata, idx_cluster});
         elseif strcmp(clusterMethod, 'kmeans')
             idx_cluster = kmeans([xdata,ydata],5);
         end

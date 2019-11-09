@@ -76,7 +76,7 @@ for nGate = 1:size(channels2gate,1)
     
     gate{nGate,1} = channels2gate(nGate,:);
     gate{nGate,2} = channels2scale(nGate,:);
-    gate{nGate,3} = gatePts;
+    gate{nGate,3} = {gatePts};
     gate{nGate,4} = idx;
     
     gateOut = gate(:,1:3);

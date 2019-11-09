@@ -35,8 +35,8 @@ for f = 1:numel(data)
             ydata = fcsdat{:,cY};
         end        
         
-        for i = 1:numel(gate{nGate,3})
-            gatePts = gate{nGate,3}{1,i};
+        for i = 1:numel(gate{nGate,3})            
+            gatePts = gate{nGate,3}{1,i};           
             idx0(:,i) = i*double(inpolygon(xdata, ydata, gatePts(:,1), gatePts(:,2)));
         end
         

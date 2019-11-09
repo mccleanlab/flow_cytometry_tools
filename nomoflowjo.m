@@ -1,15 +1,15 @@
 clearvars; clc; close all
 %% Set channels for gating
-channels2gate = {'FSC-A', 'SSC-A'; 'FSC-A', 'FSC-H'; 'BL2-H', 'FSC-H'};
-channels2scale = {'linear', 'linear'; 'linear', 'linear'; 'log', 'linear'};
-
+channels2gate = {'FSC-A', 'SSC-A'; 'FSC-A', 'FSC-H'};
+channels2scale = {'linear', 'linear'; 'linear', 'linear'};
+gate = autoGate(gateParams,'ClusterMethod','kmeans');
 %% Load data
-data01 = loadfcs();
-data02 = loadfcs();
-data = [data01, data02];
+data = loadfcs();
+% data02 = loadfcs();
+% data = [data01, data02];
 gate = drawGate(channels2gate, channels2scale);
 data = addGate(data,gate);
-data = formatfcsdat(data);
+% data = formatfcsdat(data);
 return
 %% Add labels to data for plotting
 data.label01 = strcat(data.sample,'_',data.replicate);

@@ -10,28 +10,31 @@ clearvars; clc; close all
 %% Gating yeast
 gateParams.channels2gate = {'FSC-A','SSC-A'; 'FSC-A', 'FSC-H' };
 gateParams.channelsscale = {'linear','linear'; 'linear','linear'};
-gateParams.fraction2keep = [0.7, 0.9];
+gateParams.fraction2keep = [0.5, 0.7];
 gateParams.channels2gmm = [2, 2; 2, 1];
 gate = autoGate(gateParams,'ClusterMethod','GMM');
 
 %% Load data
-data01 = loadfcs('Map','plate');
-data02 = loadfcs('Map','plate');
-data = [data01; data02];
+data = loadfcs('Map','plate');
 data = addGate(data,gate);
 data = formatfcsdat(data);
-return
+
 %%
-clf
-nbins = 256;
-xvar = 'FSCH';
-yvar = 'BL2H';
+VOI = 'YL2H';
+samplelist = string(unique(data.sample));
+samplelist(samplelist=="")=[];
+clear g; clf
 
-clear g
-g = gramm('x',log10(data.(xvar)), 'y', log10(data.(yvar)), 'subset', data.Gate_net==1 & ...
-    data.(xvar)>0 & ~isinf(data.(xvar)) & data.(yvar)>0 & ~isinf(data.(yvar)));
-g.stat_bin2d('nbins',[nbins nbins]);
+for s = 1:numel(samplelist)
+    sample = samplelist{s};    
+    data2plot = data(data.Gate_net==1 & data.sample==sample,:);
+    data2plot = data2plot(data2plot.(VOI)>0,:);
+    data2plot.(VOI) = log10(data2plot.(VOI));
+    
+    g(s,1) = gramm('x',data2plot.(VOI),'color',cellstr(data2plot.light));
+    g(s,1).stat_density();
+    g(s,1).set_names('x','log10(YL2H)','row','Sample');
+end
 
-g.set_names('x',['log10(' xvar ')'],'y',['log10(' yvar ')']);
-g.stat_glm('geom','area','disp_fit',true);
+g.axe_property('XLim',[1 3.5]);
 g.draw()

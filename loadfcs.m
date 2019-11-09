@@ -18,6 +18,7 @@ if strcmp(p.Results.Map, 'plate')
     end
     
     opts = detectImportOptions([folder filename]);
+    opts = setvartype(opts,'char');
     samplemap = readtable([folder filename],opts);
     
     % Create map of samples/condtions from platemap and labels
@@ -46,9 +47,11 @@ if strcmp(p.Results.Map, 'plate')
     end
 end
 
+
+
 % Select fcs files (prompt)
 if strcmp(p.Results.Map, 'none') && ~isfolder(p.Results.Folder)
-    [filename, folder] = uigetfile('.fcs','Select .fcs files to analyze','multiselect','on');    
+    [filename, folder] = uigetfile('.fcs','Select .fcs files to analyze','multiselect','on');
 elseif strcmp(p.Results.Map, 'none') && isfolder(p.Results.Folder)
     p.Results.Folder
     [filename, folder] = uigetfile([p.Results.Folder '\*.fcs'],'Select .fcs files to analyze','multiselect','on');
@@ -72,26 +75,29 @@ fcslist = fcslist';
 for f = 1:numel(fcslist)
     file = fcslist{f};
     [~, path, ~] = fileparts(file);
-    
     [fcsdat, fcshdr] = fca_readfcs(file);
-    
-    fcsfields = {fcshdr.par.name};
-    fcsfields = strrep(fcsfields,'-','');
-    fcsdat = array2table(fcsdat,'VariableNames',fcsfields);
-    fcsdat.sourcefile(:,1) = string(path);
-    
-    if strcmp(p.Results.Map, 'plate')
-        well = regexp(path,'[A-H](1[0-2]|[1-9])','match');
-        [i, j] = find(strcmp(map.well,well));
+    try
+        fcsfields = {fcshdr.par.name};
+        fcsfields = strrep(fcsfields,'-','');
+        fcsdat = array2table(fcsdat,'VariableNames',fcsfields);
+        fcsdat.sourcefile(:,1) = string(path);
         
-        fieldlist = fieldnames(map);
-        for n = 1:numel(fieldlist)
-            fname = fieldlist{n};
-            fcsdat.(fname)(:,1) = string(map.(fname){i,j});
-        end        
+        if strcmp(p.Results.Map, 'plate')
+            well = regexp(path,'[A-H](1[0-2]|[1-9])','match');
+            [i, j] = find(strcmp(map.well,well));
+            
+            fieldlist = fieldnames(map);
+            for n = 1:numel(fieldlist)
+                fname = fieldlist{n};
+                fcsdat.(fname)(:,1) = string(map.(fname){i,j});
+            end
+        end
+        
+        data(f).fcsdat = fcsdat;
+        data(f).fcshdr = fcshdr;
+    catch
+        disp(['Error loading ' file])
     end
-    
-    data(f).fcsdat = fcsdat;
-    data(f).fcshdr = fcshdr;
-    
 end
+
+data = data(all(~cellfun(@isempty,struct2cell(data))));

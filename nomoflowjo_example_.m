@@ -23,9 +23,6 @@ data = formatfcsdat(data); % Format data into table for plotting
 
 %% Add labels to data for plotting
 data2plot = data;
-% data2plot.label01 = strcat(data2plot.sample,'_',data2plot.replicate);
-% data2plot.label02 = strcat(data2plot.sample,'_',data2plot.time);
-% data2plot.nesnls = string(regexp(data2plot.mutant,'(\w*\|\w*)','match','once'));
 data2plot.zf = string(regexp(data2plot.mutant,'(?<=\w*\|\w*\|)\w*','match','once'));
 
 %% Simple boxplot of mCitrine expression vs ZF variant per mutant

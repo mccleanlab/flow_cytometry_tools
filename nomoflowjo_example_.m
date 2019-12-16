@@ -44,7 +44,7 @@ g.draw();
 mutantlist = unique(data2plot.mutant,'stable');
 loc = reshape(1:15,5,3)';
 
-clear g; 
+clear g;
 for n = 1:numel(mutantlist)
     mutant = mutantlist{n};
     data_hist= data2plot(data2plot.mutant==mutant,:);
@@ -57,7 +57,7 @@ for n = 1:numel(mutantlist)
     g(i,j).facet_grid(cellstr(data_hist.linus),[],'scale','free_y');
     g(i,j).stat_bin('geom','line','normalization','probability','nbins',100);
     g(i,j).set_title(mutant);
-      
+    
     if mutant~="None"
         g(i,j).no_legend();
     end
@@ -82,10 +82,10 @@ for s = 1:numel(samplelist)
     sample = samplelist{s};
     dataScatter = data2plot(data2plot.sample==sample,:);
     g(i,j) = gramm('x',log(dataScatter.YL2H),'y',log(dataScatter.BL2H),'color',cellstr(dataScatter.replicate),...
-        'subset',dataScatter.Gate_net==1 & dataScatter.YL2H>0 & dataScatter.BL2H>0 & dataScatter.time=='0');    
+        'subset',dataScatter.Gate_net==1 & dataScatter.YL2H>0 & dataScatter.BL2H>0 & dataScatter.time=='0');
     g(i,j).set_title(sample,'FontSize',7);
     g(i,j).geom_point();
-
+    
 end
 
 g.set_names('x','log(mScarlet)','y','log(mCigtrine)','color','Replicate');

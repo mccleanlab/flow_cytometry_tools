@@ -83,3 +83,4 @@ for nGate = 1:size(channels2gate,1)
     close all
 end
 
+save(['gate_' files{1} '.mat'],'gateOut')

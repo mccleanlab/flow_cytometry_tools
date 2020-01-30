@@ -7,7 +7,7 @@ channelsscale = {'linear','linear'; 'linear','linear'};
 fraction2keep = [0.5, 0.7];
 gate = drawGate(channels2gate, channelsscale);
 
-%% Set gating params automatically
+%% Alternatively, set gating params automatically 
 gateParams.channels2gate = {'FSC-A','SSC-A'; 'FSC-A', 'FSC-H' };
 gateParams.channelsscale = {'linear','linear'; 'linear','linear'};
 gateParams.fraction2keep = [0.5, 0.7];
@@ -28,9 +28,10 @@ data2plot.zf = string(regexp(data2plot.mutant,'(?<=\w*\|\w*\|)\w*','match','once
 %% Simple boxplot of mCitrine expression vs ZF variant per mutant
 clear g;
 
+% Defining data to plotted; note, specificy subset with Gate_net = 1 here to apply gating
 g = gramm('x', cellstr(data2plot.mutant),'y',log10(data2plot.BL2H),'color',cellstr(data2plot.zf),...
     'subset', data2plot.BL2H>0 & data2plot.Gate_net==1 & data2plot.reporter=="pCTT1-mCitrine" & ...
-    data2plot.linus=="-LINuS" & data2plot.time=="0" & (data2plot.zf=="A" | data2plot.zf=="WT"));
+    data2plot.linus=="-LINuS" & data2plot.time=="0" & (data2plot.zf=="A" | data2plot.zf=="WT")); 
 g.stat_boxplot();
 g.set_title('mCitrine expression vs ZF variant');
 g.set_names('x','Mutant','y','log(mCitrine)','color','ZF');

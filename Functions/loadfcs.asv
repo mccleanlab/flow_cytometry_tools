@@ -4,14 +4,9 @@ function [data] = loadfcs(varargin)
 % https://www.mathworks.com/matlabcentral/fileexchange/9608-fca_readfcs
 
 % Without any input arguements this function will simply load .fcs files
-% and add them to a struct. Optionally, one may specifie the following
-% input arguements:
-%   'Map': specifies whether a plate map should be used to assign labels to
-%   the imported .fcs files.
-%       'plate': import labels arranged in 96 well plate format (see
-%       example data for layout)
-%       'none': no map (default)
-%   'Folder': specifiy folder from which to load files
+% and add them to a table. However, one may specific the following input
+% arguements:
+    
 
 % Instantiate inputParser
 p = inputParser;

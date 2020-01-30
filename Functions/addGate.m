@@ -1,4 +1,12 @@
 function dataOut = addGate(data, gate)
+
+% This function adds gating information to your flow cytometry data set. It
+% does not apply these gates but simply appends columns for each gate with
+% the values of 1 (indicating that an event falls within a gate) or 0
+% (indicating an event is excluded by the gate). It also appends the column
+% Gate_net where a value of 1 indicates and event that is within all gates
+% or 0 indicates an event that is excluded by at least one gate.
+
 dataOut = data;
 
 for f = 1:numel(data)

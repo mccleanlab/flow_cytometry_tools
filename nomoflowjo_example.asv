@@ -18,7 +18,7 @@ gate = autoGate(gateParams,'ClusterMethod','GMM');
 data_96WELL01 = loadfcs('Map','plate'); % Load 1st set of .fcs files (w/ plate map)
 data_96WELL02 = loadfcs('Map','plate'); % Load 2nd set of .fcs files (w/ plate map)
 data = [data_96WELL01, data_96WELL02]; % Combine data from both file sets
-data = addGate(data,gate); % Add gate to data
+data = addGate(data,gate); % Add gate to data (this does NOT gate the samples, it simply adds the gating info for each event to be applied later with table logic or graphi)
 data = formatfcsdat(data); % Format data into table for plotting
 
 %% Add labels to data for plotting

@@ -7,6 +7,7 @@ function dataOut = addGate(data, gate)
 % Gate_net where a value of 1 indicates and event that is within all gates
 % or 0 indicates an event that is excluded by at least one gate.
 
+%%%%%%%%%%%% testing
 dataOut = data;
 
 for f = 1:numel(data)

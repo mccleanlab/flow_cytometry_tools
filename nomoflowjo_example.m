@@ -1,97 +1,102 @@
-close all; clearvars; clc
-tic
+clearvars; clc; close all
+%% Draw and save gate (comment out if loading previously saved gate)
+gateParams.channels2gate = {'FSC-A', 'SSC-A'; 'FSC-A', 'FSC-H'}; % Specify pairs of channels for gating
+gateParams.channelsscale = {'linear','linear'; 'log','log'}; % Specify scale for each pair of channels
+gate = draw_gate(gateParams.channels2gate, gateParams.channelsscale);
 
-%% Define and manually draw gates
-channels2gate = {'FSC-A','SSC-A'; 'FSC-A', 'FSC-H' };
-channelsscale = {'linear','linear'; 'linear','linear'};
-fraction2keep = [0.5, 0.7];
-gate = drawGate(channels2gate, channelsscale);
+%% Load previously saved gate (comment out if running for first time)
+% gate = load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
+% gate = gate.gateOut;
 
-%% Alternatively, set gating params automatically 
-gateParams.channels2gate = {'FSC-A','SSC-A'; 'FSC-A', 'FSC-H' };
-gateParams.channelsscale = {'linear','linear'; 'linear','linear'};
-gateParams.fraction2keep = [0.5, 0.7];
-gateParams.channels2gmm = [2, 2; 2, 1];
-gate = autoGate(gateParams,'ClusterMethod','GMM');
+%% Designate folders from which to load .fcs files and plate maps (can easily comment out folders as shown below)
+folder_list = {
+    %     'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200818_KS_yMM1606_yMM1608_Msn2_CLASP_light\dark'...
+    %     'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200818_KS_yMM1606_yMM1608_Msn2_CLASP_light\light'...
+    'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200820_KS_yMM1603_yMM1605_Msn2_CLASP_light\dark'...
+    'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200820_KS_yMM1603_yMM1605_Msn2_CLASP_light\light'...
+    };
 
-%% Load and process data
-data_96WELL01 = loadfcs('Map','plate'); % Load 1st set of .fcs files (w/ plate map)
-data_96WELL02 = loadfcs('Map','plate'); % Load 2nd set of .fcs files (w/ plate map)
-data = [data_96WELL01, data_96WELL02]; % Combine data from both file sets
-data = addGate(data,gate); % Add gate to data (this does NOT gate the samples, it simply adds the gating info for each event to be applied later with table logic or graphing rulse)
-data = formatfcsdat(data); % Format data into table for plotting
-
-%% Add labels to data for plotting
-data2plot = data;
-data2plot.zf = string(regexp(data2plot.mutant,'(?<=\w*\|\w*\|)\w*','match','once'));
-
-%% Simple boxplot of mCitrine expression vs ZF variant per mutant
-clear g;
-
-% Defining data to plotted; note, specificy subset with Gate_net = 1 here to apply gating
-g = gramm('x', cellstr(data2plot.mutant),'y',log10(data2plot.BL2H),'color',cellstr(data2plot.zf),...
-    'subset', data2plot.BL2H>0 & data2plot.Gate_net==1 & data2plot.reporter=="pCTT1-mCitrine" & ...
-    data2plot.linus=="-LINuS" & data2plot.time=="0" & (data2plot.zf=="A" | data2plot.zf=="WT")); 
-g.stat_boxplot();
-g.set_title('mCitrine expression vs ZF variant');
-g.set_names('x','Mutant','y','log(mCitrine)','color','ZF');
-figure('Position',[100 100 1200 600]);
-g.draw();
-
-%% Histogram mCitrine expression for each Msn2x-mScarlet±LINuS ±light
-mutantlist = unique(data2plot.mutant,'stable');
-loc = reshape(1:15,5,3)';
-
-clear g;
-for n = 1:numel(mutantlist)
-    mutant = mutantlist{n};
-    data_hist= data2plot(data2plot.mutant==mutant,:);
-    data_hist.light(data_hist.time== "0") = "-light";
-    data_hist.light(data_hist.time== "2") = "+light";
-    [i, j] = find(loc==n);
-    
-    g(i,j) = gramm('x',log(data_hist.BL2H),'color',cellstr(data_hist.light),'group',cellstr(data_hist.replicate),...
-        'subset', data_hist.BL2H>0 & data_hist.Gate_net==1 & data_hist.reporter=="pCTT1-mCitrine");
-    g(i,j).facet_grid(cellstr(data_hist.linus),[],'scale','free_y');
-    g(i,j).stat_bin('geom','line','normalization','probability','nbins',100);
-    g(i,j).set_title(mutant);
-    
-    if mutant~="None"
-        g(i,j).no_legend();
-    end
-    
+% Loop through folders and load labelled measurements from .fcs files
+for f = 1:numel(folder_list)
+    data_temp = load_fcs('map','plate','folder',folder_list{f});
+    data_temp = add_gate(data_temp,gate);
+    data_temp = format_fcsdat(data_temp);
+    data{f} = data_temp;
 end
 
-g.set_order_options('row',{'-LINuS','+LINuS'},'color',{'-light','+light'});
-g.set_text_options('facet_scaling',0.75,'title_scaling',0.75);
-g.set_names('x','log(mCitrine)','y','%','row','');
-g.set_title('mCitrine expression')
-g.axe_property('XLim',[4 12]);
-figure('Position',[100 100 1200 1200]);
-g.draw();
+% Combine all loaded data into big table
+data = vertcat(data{:});
 
-%% Single-cell mCitrine vs mScarlet expression per mutant (scatter plot)
-samplelist = unique(data2plot.sample,'stable');
-gidx = reshape(1:30,6,5)';
+%% Process data as you like
+% Get rid of nonsense measurements
+data(data.BL2A<=0,:) = [];
+data(data.YL2A<=0,:) = [];
 
-clear g
-for s = 1:numel(samplelist)
-    [i, j] = find(gidx==s);
-    sample = samplelist{s};
-    dataScatter = data2plot(data2plot.sample==sample,:);
-    g(i,j) = gramm('x',log(dataScatter.YL2H),'y',log(dataScatter.BL2H),'color',cellstr(dataScatter.replicate),...
-        'subset',dataScatter.Gate_net==1 & dataScatter.YL2H>0 & dataScatter.BL2H>0 & dataScatter.time=='0');
-    g(i,j).set_title(sample,'FontSize',7);
-    g(i,j).geom_point();
+% Calculate BL2A threshold (optional mCitrine gate)
+data_BL2A_thresh = grpstats(data(data.plasmid=="pMM0832",:),{'replicate','reporter','condition'},@(x) prctile(x,95),'DataVars',{'BL2A','YL2A'});
+data_BL2A_thresh = clean_grpstats(data_BL2A_thresh);
+data_BL2A_thresh.Properties.VariableNames(end-1:end) = {'BL2A_thresh' 'YL2A_thresh'};
+data = join(data,data_BL2A_thresh);
+
+% Calculate fold change mCitrine
+data_fc = grpstats(data(data.condition=='dark',:),{'replicate','plasmid','reporter'},'nanmedian','DataVars',{'BL2A','YL2A'});
+data_fc = clean_grpstats(data_fc);
+data_fc.Properties.VariableNames(end-1:end) = {'BL2A_fc','YL2A_fc'};
+data = join(data,data_fc);
+data.BL2A_fc = data.BL2A./data.BL2A_fc;
+data.YL2A_fc = data.YL2A./data.YL2A_fc;
+
+%% Plot data as you like
+%%% NOTE: actually apply gates by using the logical gate variables as subsets
+close all; clc
+
+% Loop through reporters and plot mCitrine expression for Msn2 ± CLASP mutants
+for n = 1:numel(reporter_list)
+    reporter = string(reporter_list(n));
     
+    % Get x limits
+    x_lim = data.BL2A(data.gate_net==1 & data.reporter==reporter & (data.CLASP=="CLASP" | data.CLASP=="dCLASP"));
+    x_lim = prctile(log(x_lim),[0.5,99.99]);
+    x_lim = [floor(x_lim(1)),ceil(x_lim(2))];
+    
+    % Plot histogram of mCitrine expression
+    clear g; close all
+    figure('units','normalized','outerposition',[0 0 1 1])
+    g = gramm('x',log(data.BL2A),'color',cellstr(data.condition),'linestyle',cellstr(data.CLASP),...
+        'group',cellstr(data.replicate),'subset',data.gate_net==1 & data.reporter==reporter & (data.CLASP=="CLASP" | data.CLASP=="dCLASP"));
+    g.facet_wrap(cellstr(data.Msn2),'ncols',4,'scale','independent');
+    g.stat_bin('geom','line','normalization','probability','nbins',50);
+    g.axe_property('XLim',x_lim);
+    g.set_names('x','log(mCitrine)','y','pdf','row','','column','');
+    g.set_title([reporter ' (absolute)']);
+    g.set_layout_options('title_centering','plot','redraw',true);
+    g.set_text_options('interpreter','tex');
+    g.set_order_options('x',0);
+    g.draw();
+%     g.export('file_name',strcat(reporter,'_hist'),'file_type','png');
 end
 
-g.set_names('x','log(mScarlet)','y','log(mCigtrine)','color','Replicate');
-g.set_text_options('base_size',6,'label_scaling',1.5,'title_scaling',2,'legend_scaling',1);
-g.set_point_options('base_size',1);
-g.set_title('mScarlet vs mCitrine expression per cell');
-figure('Position',[100 100 1200 600]);
+% Plot summary of mCitrine expression
+clear g; close all; clc
+figure('units','normalized','outerposition',[0 0 1 1]);
+g = gramm('x',cellstr(data.Msn2),'y',(data.BL2A),'color',cellstr(data.condition),'marker',cellstr(data.CLASP),...
+    'group',cellstr(data.replicate),'subset',data.gate_net==1 & (data.CLASP=='CLASP' | data.CLASP=='dCLASP'));
+g.facet_wrap(cellstr(data.reporter),'ncols',3,'scale','independent');
+g.stat_summary('type','quartile','geom','point','setylim',true);
+g.set_names('x','','y','mCitrine','row','','column','');
+g.set_point_options('markers',{'o','^'},'base_size',7)
+g.axe_property('XTickLabelRotation',45,'TickLabelInterpreter','tex');
+g.set_order_options('x',0);
+g.set_title('reporter expression (absolute)');
+g.draw();
+% g.export('file_name','mCitrine','file_type','png');
+
+%% Plot a 2D histogram
+clear g; close all; clc
+g = gramm('x',log(data.SSCH),'y',log(data.SSCA),'subset',data.gate_net==1 & data.Msn2=='Msn2' & data.CLASP=='CLASP');
+g.facet_grid(cellstr(data.condition),cellstr(data.reporter),'scale','independent');
+g.stat_bin2d('nbins',[255 255]);
+g.set_names('x','SSCH','y','SSCA','row','','column','','color','');
+g.no_legend();
 g.draw();
 
-%%
-toc

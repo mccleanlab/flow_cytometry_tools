@@ -89,7 +89,7 @@ data.YL2A_fc = data.YL2A./data.YL2A_fc;
 
 close all; clc
 
-% Loop through reporters and plot expression for each mutant strain
+% Loop through reporters and plot mCitrine expression for each strain
 for n = 1:numel(reporter_list)
     reporter = string(reporter_list(n));
     

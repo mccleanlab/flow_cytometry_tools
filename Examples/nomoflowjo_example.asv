@@ -1,11 +1,8 @@
 clearvars; clc; close all
 %% Draw and save gate (comment out if loading previously saved gate)
-channels_to_gate = {'FSC-A', 'SSC-A'; 'FSC-A', 'FSC-H'}; % Specify pairs of channels for gating
-channels_scale = {'linear','linear'; 'log','log'}; % Specify scale for each pair of channels
-gate = draw_gate(channels_to_gate, channels_scale); % Draw and save gate
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% The above code will allow you to draw a gate on an .fcs file selected by
+% This code will allow you to draw a gate on an .fcs file selected by
 % UI prompt, first on a plot of FSCA-A vs SCC-A (with linear scaling) then
 % on a plot of FSC-A vs FSC-H (with log scaling). It will automatically
 % save the gate as a .mat file to the current folder. I recommend that you
@@ -14,32 +11,38 @@ gate = draw_gate(channels_to_gate, channels_scale); % Draw and save gate
 % gate, as shown below.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% channels_to_gate = {'FSC-A', 'SSC-A'; 'FSC-A', 'FSC-H'}; % Specify pairs of channels for gating
+% channels_scale = {'linear','linear'; 'log','log'}; % Specify scale for each pair of channels
+% gate = draw_gate(channels_to_gate, channels_scale); % Draw and save gate
+
+
+
 %% Load previously saved gate (comment out if running for first time)
-% load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
-% gate = gate.gateOut;
+gate = load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
+gate = gate.gate_out;
 
 %% Load measurments and labels
 
-% Specify folders from which to load .fcs files and plate maps
-% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Here each folder contains all .fcs files for a given plate (keep
+% other .fcs files, eg, those used for calibration, in another fodler).
+% You can easily add folder paths as new lines or comment out folders as
+% shown above. I apply labels to the measurements as they are imported by
+% placing a .xlsx plate map in each of the above folders and using the
+% function load_fcs('map','plate') below. Each plate map contains labels
+% for each well of a 96 well plate(though you can leave empty wells blank).
+% You can add an arbitray number of labels to the plate map so long as they
+% include the map_* label flag and follow the 96 well format shown in the
+% example plate map.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Specify folders from which to load .fcs files
 folder_list = {
     %     'D:\GoogleDrive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200818_KS_yMM1606_yMM1608_Msn2_CLASP_light\dark'...
     %     'D:\GoogleDrive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200818_KS_yMM1606_yMM1608_Msn2_CLASP_light\light'...
     'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200820_KS_yMM1603_yMM1605_Msn2_CLASP_light\dark'...
     'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200820_KS_yMM1603_yMM1605_Msn2_CLASP_light\light'...
     };
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Here each folder contains all .fcs files for a given plate. You can
-% easily add folder paths as new lines or comment out folders as shown
-% above. I apply labels to the measurements as they are imported by placing
-% a .xlsx plate map in each of the above folders and using the function
-% load_fcs('map','plate') below. Each plate map contains labels for
-% each well of a 96 well plate(though you can leave empty wells blank). You
-% can add an arbitray number of labels to the plate map so long as they
-% include the map_* label flag and follow the 96 well format shown in the
-% example plate map.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Loop through folders and load labelled measurements from .fcs files
 for f = 1:numel(folder_list)
@@ -59,8 +62,8 @@ data(data.YL2A<=0,:) = [];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use grpstats() to do a calculation on some subset of your data. You can
-% then merge the resulting table back in to the primary data table so long
-% as your keywords make sense. Here I calculate basal expression for each
+% merge the resulting table back in to the primary data table so long
+% as your keywords match up. Here I calculate basal expression for each
 % strain (and replicate) then merge that number back into the main table
 % and use it to calculate fold change.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,6 +75,8 @@ data_fc.Properties.VariableNames(end-1:end) = {'BL2A_fc','YL2A_fc'};
 data = join(data,data_fc);
 data.BL2A_fc = data.BL2A./data.BL2A_fc;
 data.YL2A_fc = data.YL2A./data.YL2A_fc;
+
+
 
 %% Plot measurements
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,7 +94,8 @@ data.YL2A_fc = data.YL2A./data.YL2A_fc;
 
 close all; clc
 
-% Loop through reporters and plot mCitrine expression for each strain
+% Loop through reporters and plot expression for each mutant strain
+reporter_list = unique(data.reporter,'stable');
 for n = 1:numel(reporter_list)
     reporter = string(reporter_list(n));
     
@@ -130,8 +136,9 @@ g.set_title('reporter expression (absolute)');
 g.draw();
 % g.export('file_name','mCitrine','file_type','png');
 
-%% Plot a 2D histogram
+% Plot a 2D histogram
 clear g; close all; clc
+figure('units','normalized','outerposition',[0 0 1 1]);
 g = gramm('x',log(data.SSCH),'y',log(data.SSCA),'subset',data.gate_net==1 & data.Msn2=='Msn2' & data.CLASP=='CLASP');
 g.facet_grid(cellstr(data.condition),cellstr(data.reporter),'scale','independent');
 g.stat_bin2d('nbins',[255 255]);

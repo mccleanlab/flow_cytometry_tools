@@ -128,4 +128,4 @@ gate_out(:,4) = [];
 
 % Save gate
 [~, filename_out, ~] = fileparts(files{1});
-save(['gate_' filename_out '.mat'],'gateOut')
+save(['gate_' filename_out '.mat'],'gate_out')

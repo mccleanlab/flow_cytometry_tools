@@ -15,31 +15,31 @@ gate = draw_gate(channels_to_gate, channels_scale); % Draw and save gate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Load previously saved gate (comment out if running for first time)
-% load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
-% gate = gate.gateOut;
+gate = load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
+gate = gate.gate_out;
 
 %% Load measurments and labels
 
-% Specify folders from which to load .fcs files and plate maps
-% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Here each folder contains all .fcs files for a given plate (keep
+% other .fcs files, eg, those used for calibration, in another fodler).
+% You can easily add folder paths as new lines or comment out folders as
+% shown above. I apply labels to the measurements as they are imported by
+% placing a .xlsx plate map in each of the above folders and using the
+% function load_fcs('map','plate') below. Each plate map contains labels
+% for each well of a 96 well plate(though you can leave empty wells blank).
+% You can add an arbitray number of labels to the plate map so long as they
+% include the map_* label flag and follow the 96 well format shown in the
+% example plate map.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Specify folders from which to load .fcs files
 folder_list = {
     %     'D:\GoogleDrive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200818_KS_yMM1606_yMM1608_Msn2_CLASP_light\dark'...
     %     'D:\GoogleDrive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200818_KS_yMM1606_yMM1608_Msn2_CLASP_light\light'...
     'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200820_KS_yMM1603_yMM1605_Msn2_CLASP_light\dark'...
     'D:\Google Drive\yMM1603_yMM1608_Msn2_CLASP_flow_cytometry\20200820_KS_yMM1603_yMM1605_Msn2_CLASP_light\light'...
     };
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Here each folder contains all .fcs files for a given plate. You can
-% easily add folder paths as new lines or comment out folders as shown
-% above. I apply labels to the measurements as they are imported by placing
-% a .xlsx plate map in each of the above folders and using the function
-% load_fcs('map','plate') below. Each plate map contains labels for
-% each well of a 96 well plate(though you can leave empty wells blank). You
-% can add an arbitray number of labels to the plate map so long as they
-% include the map_* label flag and follow the 96 well format shown in the
-% example plate map.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Loop through folders and load labelled measurements from .fcs files
 for f = 1:numel(folder_list)
@@ -52,18 +52,20 @@ end
 % Convert collected tables into single big table
 data = vertcat(data{:});
 
-%% Process data as you like, here's a few things I did
+%% Process data
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Process the data as you like but here's a useful trick. Use grpstats() to
+% do a calculation on some subset of your data. You can merge the resulting
+% table back in to the primary data table so long as your keywords match
+% up. Here I calculate basal expression for each strain (and replicate)
+% then merge that number back into the main table and use it to calculate
+% fold change. This avoids lots of complicated looping.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Get rid of nonsense measurements
 data(data.BL2A<=0,:) = [];
 data(data.YL2A<=0,:) = [];
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Use grpstats() to do a calculation on some subset of your data. You can
-% then merge the resulting table back in to the primary data table so long
-% as your keywords make sense. Here I calculate basal expression for each
-% strain (and replicate) then merge that number back into the main table
-% and use it to calculate fold change.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Calculate fold change mCitrine
 data_fc = grpstats(data(data.condition=='dark',:),{'replicate','plasmid','reporter'},'nanmedian','DataVars',{'BL2A','YL2A'});
@@ -74,6 +76,7 @@ data.BL2A_fc = data.BL2A./data.BL2A_fc;
 data.YL2A_fc = data.YL2A./data.YL2A_fc;
 
 %% Plot measurements
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % You can plot the measurements however you like, but I believe that using
 % GRAMM (which is required for gating anyway) to plot the tabular data
@@ -87,10 +90,10 @@ data.YL2A_fc = data.YL2A./data.YL2A_fc;
 % events that are within all gates.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-close all; clc
-
 % Loop through reporters and plot expression for each mutant strain
-for n = 1:numel(reporter_list)
+close all; clc
+reporter_list = unique(data.reporter,'stable');
+for n = 1%:numel(reporter_list)
     reporter = string(reporter_list(n));
     
     % Get x limits
@@ -130,8 +133,9 @@ g.set_title('reporter expression (absolute)');
 g.draw();
 % g.export('file_name','mCitrine','file_type','png');
 
-%% Plot a 2D histogram
+% Plot a 2D histogram
 clear g; close all; clc
+figure('units','normalized','outerposition',[0 0 1 1]);
 g = gramm('x',log(data.SSCH),'y',log(data.SSCA),'subset',data.gate_net==1 & data.Msn2=='Msn2' & data.CLASP=='CLASP');
 g.facet_grid(cellstr(data.condition),cellstr(data.reporter),'scale','independent');
 g.stat_bin2d('nbins',[255 255]);

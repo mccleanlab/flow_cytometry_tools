@@ -30,7 +30,7 @@ for f = 1:numel(data_in)
         
         channels2gate = gates{nGate,1};
         gate_name = strrep(channels2gate,'-','');
-        gate_name = strcat('Gate_',gate_name{1},'_',gate_name{2});
+        gate_name = strcat('gate_',gate_name{1},'_',gate_name{2});
         cX = find(strcmp({fcshdr.par.name},channels2gate(1))==1);
         cY = find(strcmp({fcshdr.par.name},channels2gate(2))==1);
         

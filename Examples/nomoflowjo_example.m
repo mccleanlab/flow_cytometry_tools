@@ -15,8 +15,8 @@ gate = draw_gate(channels_to_gate, channels_scale); % Draw and save gate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Load previously saved gate (comment out if running for first time)
-gate = load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
-gate = gate.gate_out;
+% gate = load('gate_20200818_KS_Msn2_CLASP_dark_experiment_dark_controls_yMM1608_pMM0832.mat');
+% gate = gate.gate_out;
 
 %% Load measurments and labels
 

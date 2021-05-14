@@ -27,6 +27,8 @@ for f = 1:numel(files)
     file = files{f};
     [fcsdat, fcshdr] = fca_readfcs([folder file]);
     
+    events_total = size(fcsdat,1);
+    
     close all
     
     % Loop through channel pairs used for gating
@@ -76,11 +78,16 @@ for f = 1:numel(files)
         edge_idx = any([xdata==max(xdata), ydata==max(ydata)],2);
         nbins = round(n0/100);
         
+        % Get number of events within gate
+        events_gated = inpolygon(xdata, ydata, gate_vertices(:,1),gate_vertices(:,2));
+        events_gated = sum(events_gated);
+        events_gated_percent = round(100*events_gated/events_total,1);
+        
         % Plot measurements to be gated
         clear g
         g = gramm('x',xdata(~edge_idx),'y',ydata(~edge_idx));
         g.stat_bin2d('nbins',[nbins nbins],'geom','image');
-        g.set_names('x',[ gate{n_gate,1}{1} newline '(' gate{n_gate,2}{1} ')'],'y',[gate{n_gate,1}{2} newline '(' gate{n_gate,2}{2} ')']);
+        g.set_names('x',[ gate{n_gate,1}{1} newline '(' gate{n_gate,2}{1} ')' newline newline num2str(events_gated) ' events within gate (' num2str(events_gated_percent) '% of total events)'],'y',[gate{n_gate,1}{2} newline '(' gate{n_gate,2}{2} ')']);
         g.no_legend();
         figure('Position',[100 100 800 800]);
         g.draw();

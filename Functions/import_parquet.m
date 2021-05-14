@@ -1,6 +1,12 @@
 function data_out = import_parquet(filenames,variable_names)
 data_out = {};
-data_store = datastore(filenames,'SelectedVariableNames',variable_names);
+
+if exist('variable_names','var')
+    data_store = datastore(filenames,'SelectedVariableNames',variable_names);
+else
+    data_store = datastore(filenames);
+end
+
 data_store.ReadSize='file';
 idx = 1;
 

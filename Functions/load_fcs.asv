@@ -95,9 +95,10 @@ if strcmp(p.Results.map, 'plate')
     well_list = strrep(well_list,' ','');
     well_list = reshape(well_list,24,16)';
     
-    % Keep only 96 well plate well names format if appropriate
+    % Keep only 96 well plate well name format if appropriate
     if strcmp(p.Results.plate_type, '96_well')
         well_list = well_list(1:8,1:12);
+        disp('96 well plate')
     end
     
     plate_map.well = well_list;
@@ -143,7 +144,7 @@ for f = 1:size(fcs_files,1)
             end
         end
         
-        if p.Results.event_limit==Inf || (size(fcsdat,1)<p.Results.event_limit) % Load all events
+        if p.Results.event_limit==Inf || size(fcsdat,1)<p.Results.event_limit % Load all events
             data(f).fcsdat = fcsdat;
             data(f).fcshdr = fcshdr;        
         else % Randomly sample subset of events

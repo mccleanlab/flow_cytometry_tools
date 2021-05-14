@@ -1,4 +1,4 @@
-function [data, experiment_name] = load_fcs(varargin)
+function [data, experiment_name] = load_fcs_384_well(varargin)
 
 % This function loads .fcs files using fca_loadfcs.m by Laslo Balkay
 % https://www.mathworks.com/matlabcentral/fileexchange/9608-fca_readfcs
@@ -33,11 +33,12 @@ p = inputParser;
 addParameter(p, 'map', 'none', @(s) ismember(s, {'none','plate'}));
 addParameter(p, 'folder', '', @isfolder);
 addParameter(p, 'event_limit',Inf);
-addParameter(p, 'plate_type','96_well');
+addParameter(p, 'well_count',96);
 parse(p, varargin{:});
 
 % Parse inputs
 parse(p, varargin{:});
+
 
 % Select list of .fcs files to be loaded
 if isfolder(p.Results.folder) % Select from specified folder
@@ -82,7 +83,7 @@ if strcmp(p.Results.map, 'plate')
     opts = setvartype(opts,'char');
     plate_map_raw = readtable(fullfile(plate_map_file.folder,plate_map_file.name),opts);
     
-    % Create list of well names in 384 well format
+    % Creat list of well names in 96 well format
     row_names = ['A':'P']';
     
     column_names = num2cell(1:24);
@@ -94,12 +95,6 @@ if strcmp(p.Results.map, 'plate')
     well_list = join(well_list);
     well_list = strrep(well_list,' ','');
     well_list = reshape(well_list,24,16)';
-    
-    % Keep only 96 well plate well names format if appropriate
-    if strcmp(p.Results.plate_type, '96_well')
-        well_list = well_list(1:8,1:12);
-    end
-    
     plate_map.well = well_list;
     
     % Extract labels from plate map
@@ -143,9 +138,9 @@ for f = 1:size(fcs_files,1)
             end
         end
         
-        if p.Results.event_limit==Inf || (size(fcsdat,1)<p.Results.event_limit) % Load all events
+        if p.Results.event_limit==Inf % Load all events
             data(f).fcsdat = fcsdat;
-            data(f).fcshdr = fcshdr;        
+            data(f).fcshdr = fcshdr;
         else % Randomly sample subset of events
             idx = randperm(size(fcsdat,1), p.Results.event_limit);
             data(f).fcsdat = fcsdat(idx,:);

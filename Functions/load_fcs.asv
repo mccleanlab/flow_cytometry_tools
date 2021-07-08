@@ -187,7 +187,9 @@ if ~isempty(f_error_list)
         
         % Apply labels from plate map to loaded data (if applicable)
         if strcmp(p.Results.map, 'plate')
+
             well = regexp(fcs_files.name{f_error},'[A-P](2[0-4]|1[0-2]|[1-9])','match');
+            
             [i, j] = find(strcmp(plate_map.well,well));
             
             field_list = fieldnames(plate_map);

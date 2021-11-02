@@ -34,6 +34,7 @@ addParameter(p, 'map', 'none', @(s) ismember(s, {'none','plate'}));
 addParameter(p, 'folder', '', @isfolder);
 addParameter(p, 'event_limit',Inf);
 addParameter(p, 'plate_type','96_well');
+addParameter(p,'sheet','Sheet1')
 parse(p, varargin{:});
 
 % Parse inputs
@@ -78,9 +79,9 @@ if strcmp(p.Results.map, 'plate')
     [~, experiment_name, ~] = fileparts(fullfile(plate_map_file.folder,plate_map_file.name));
     
     % Load labels from plate map
-    opts = detectImportOptions(fullfile(plate_map_file.folder,plate_map_file.name));
+    opts = detectImportOptions(fullfile(plate_map_file.folder,plate_map_file.name),'Sheet',p.Results.sheet);
     opts = setvartype(opts,'char');
-    plate_map_raw = readtable(fullfile(plate_map_file.folder,plate_map_file.name),opts);
+    plate_map_raw = readtable(fullfile(plate_map_file.folder,plate_map_file.name),opts);   
     
     % Create list of well names in 384 well format
     row_names = ['A':'P']';

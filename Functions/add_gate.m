@@ -4,9 +4,9 @@ function data_out = add_gate(data_in, gates)
 % tabular flow cytometry measurements DATA_IN to return a table DATA_OUT
 % with labels for each event indicating whether they lie within a given
 % gate. It appends a logical column for each gate where each event is
-% labeled true if it falls within the gate and false if it does not. It
-% also appends a logical column GATE_NET indicating whether events lie
-% within all applied gates.
+% labeled true (1) if it falls within the gate and false (0) if it does
+% not. It also appends a logical column GATE_NET indicating whether events
+% lie within all applied gates.
 %
 % This function does not discard events that fall outside any gates, it
 % simply labels events with logical labels that can be applied when

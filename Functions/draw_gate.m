@@ -23,7 +23,7 @@ function gate_out = draw_gate(channels_to_gate, channels_to_scale)
 % adding/deleting vertices via the right-click menu. Once you are happy
 % with your gate, press enter to show the points within the gate and ENTER
 % again to save the gate. Continue this process until all channel pairs are
-% gated. 
+% gated.
 
 % Select .fcs file on which to draw gate
 [files, folder] = uigetfile('.fcs','Select a .fcs file to gate');

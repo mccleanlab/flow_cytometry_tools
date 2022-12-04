@@ -137,9 +137,7 @@ for f = 1:size(fcs_files,1)
             well = regexp(fcs_files.name{f},'[A-P](2[0-4]|1[0-9]|[1-9])','match');
             [i, j] = find(strcmp(plate_map.well,well));
 
-            if strcmp(p.Results.map, 'plate')
-                fcsdat.plate_map(:,1) = categorical(string(plate_map_name));
-            end
+            fcsdat.plate_map(:,1) = categorical(string(plate_map_name));
 
             field_list = fieldnames(plate_map);
             for n = 1:numel(field_list)

@@ -1,4 +1,4 @@
-function [data, experiment_name] = load_fcs(varargin)
+function [data, plate_map_name] = load_fcs(varargin)
 
 % This function loads .fcs files using fca_loadfcs.m by Laslo Balkay
 % https://www.mathworks.com/matlabcentral/fileexchange/9608-fca_readfcs
@@ -46,17 +46,17 @@ if isfolder(p.Results.folder) % Select from specified folder
     fcs_files = struct2table(fcs_files);
 else % Select via UI prompt
     [fcs_filenames, fcs_files_folder] = uigetfile('.fcs','Select .fcs files to analyze','multiselect','on');
-    
+
     % Correct filename format if only loading one file
     if ~iscell(fcs_filenames)
         fcs_filenames = {fcs_filenames};
     end
-    
+
     % Reorder filenames into vertical cell array if needed
     if size(fcs_filenames,2)>1
         fcs_filenames = fcs_filenames';
     end
-    
+
     % Save list of .fcs files in table
     fcs_files = table();
     fcs_files.name = cellstr(fcs_filenames);
@@ -65,7 +65,7 @@ end
 
 % Load plate map if specified
 if strcmp(p.Results.map, 'plate')
-    
+
     if isfolder(p.Results.folder) % Load plate map from specified folder
         plate_map_file = dir(fullfile(p.Results.folder,'*.xlsx'));
         if isempty(plate_map_file) % Load plate map via UI prompt if no .xlsx file found in folder
@@ -74,35 +74,35 @@ if strcmp(p.Results.map, 'plate')
     else % Load plate map via UI prompt
         [plate_map_file.name, plate_map_file.folder] =  uigetfile([fcs_files_folder '*.xlsx'],'Select plate map','MultiSelect','on');
     end
-    
+
     % Get experiment name from plate map
-    [~, experiment_name, ~] = fileparts(fullfile(plate_map_file.folder,plate_map_file.name));
-    
+    [~, plate_map_name, ~] = fileparts(fullfile(plate_map_file.folder,plate_map_file.name));
+
     % Load labels from plate map
     opts = detectImportOptions(fullfile(plate_map_file.folder,plate_map_file.name),'Sheet',p.Results.sheet);
     opts = setvartype(opts,'char');
-    plate_map_raw = readtable(fullfile(plate_map_file.folder,plate_map_file.name),opts);   
-    
+    plate_map_raw = readtable(fullfile(plate_map_file.folder,plate_map_file.name),opts);
+
     % Create list of well names in 384 well format
     row_names = ['A':'P']';
-    
+
     column_names = num2cell(1:24);
     column_names = cellfun(@(x) sprintf('%2d',x),column_names,'UniformOutput',false);
     column_names = string(column_names);
     [c, r] = ndgrid(1:numel(column_names),1:numel(row_names));
-    
+
     well_list = [row_names(r(:)) column_names(c(:)).'];
     well_list = join(well_list);
     well_list = strrep(well_list,' ','');
     well_list = reshape(well_list,24,16)';
-    
+
     % Keep only 96 well plate well names format if appropriate
     if strcmp(p.Results.plate_type, '96_well')
         well_list = well_list(1:8,1:12);
     end
-    
+
     plate_map.well = well_list;
-    
+
     % Extract labels from plate map
     label_list = regexp(plate_map_raw{:,:},'map_\w*','match');
     label_list = string(label_list(~cellfun('isempty',label_list)));
@@ -122,44 +122,48 @@ f_error_list = [];
 
 % Loop through list of .fcs files and load measurements
 for f = 1:size(fcs_files,1)
-    
+
     % Load measurements and metadata from .fcs files using Laslo Balkey's loader
     [fcsdat, fcshdr] = fca_readfcs(fullfile(fcs_files.folder{f},fcs_files.name{f}));
-    
+
     try % Organize measurements into table with appropriate column names
         fcs_fields = {fcshdr.par.name};
         fcs_fields = strrep(fcs_fields,'-','');
         fcsdat = array2table(fcsdat,'VariableNames',fcs_fields);
         fcsdat.sourcefile(:,1) = categorical(string(fcs_files.name{f}));
-        
+
         % Apply labels from plate map to loaded data (if applicable)
         if strcmp(p.Results.map, 'plate')
             well = regexp(fcs_files.name{f},'[A-P](2[0-4]|1[0-9]|[1-9])','match');
             [i, j] = find(strcmp(plate_map.well,well));
-            
+
+            if strcmp(p.Results.map, 'plate')
+                fcsdat.plate_map(:,1) = categorical(string(plate_map_name));
+            end
+
             field_list = fieldnames(plate_map);
             for n = 1:numel(field_list)
                 fname = field_list{n};
                 fcsdat.(fname)(:,1) = categorical(string(plate_map.(fname){i,j}));
             end
         end
-        
+
         if p.Results.event_limit==Inf || (size(fcsdat,1)<p.Results.event_limit) % Load all events
             data(f).fcsdat = fcsdat;
-            data(f).fcshdr = fcshdr;        
+            data(f).fcshdr = fcshdr;
         else % Randomly sample subset of events
             idx = randperm(size(fcsdat,1), p.Results.event_limit);
             data(f).fcsdat = fcsdat(idx,:);
             data(f).fcshdr = fcshdr;
         end
-        
+
     catch % Log error if .fcs file empty
         disp(['Error loading ' fcs_files.name{f}])
-        
+
         % Create placeholder
         data(f).fcsdat = table();
         data(f).fcshdr = struct();
-        
+
         % Log error
         f_error_list(idx_error) = f;
         idx_error = idx_error + 1;
@@ -172,32 +176,32 @@ if ~isempty(f_error_list)
     f_good = 1:size(fcs_files,1);
     f_good = f_good(~ismember(f_good,f_error_list));
     f_good = f_good(1);
-    
+
     % Go back though erronious files and add empty data with correct field names based on good file
     for f = 1:numel(f_error_list)
         f_error = f_error_list(f);
-        
+
         % Get field names from good file
         [fcsdat, fcshdr] = fca_readfcs(fullfile(fcs_files.folder{f_good},fcs_files.name{f_good}));
         fcsdat = nan(1,size(fcsdat,2));
-        
+
         fcs_fields = {fcshdr.par.name};
         fcs_fields = strrep(fcs_fields,'-','');
         fcsdat = array2table(fcsdat,'VariableNames',fcs_fields);
         fcsdat.sourcefile(:,1) = categorical(string(fcs_files.name{f_error}));
-        
+
         % Apply labels from plate map to loaded data (if applicable)
         if strcmp(p.Results.map, 'plate')
             well = regexp(fcs_files.name{f_error},'[A-P](2[0-4]|1[0-2]|[1-9])','match');
             [i, j] = find(strcmp(plate_map.well,well));
-            
+
             field_list = fieldnames(plate_map);
             for n = 1:numel(field_list)
                 fname = field_list{n};
                 fcsdat.(fname)(:,1) = categorical(string(plate_map.(fname){i,j}));
             end
         end
-        
+
         data(f_error).fcsdat = fcsdat;
         data(f_error).fcshdr = fcshdr;
     end

@@ -21,7 +21,6 @@ for f = 1:numel(folder_list)
     [data_temp, experiment_name] = load_fcs('map','plate','folder',folder_list{f},'event_limit',25000,'plate_type','384_well');
     data_temp = add_gate(data_temp,gate); % Apply gates
     data_temp = format_fcsdat(data_temp); % Re-format data into table
-    
     data{idx,1} = data_temp;
     idx = idx + 1;
 end
@@ -34,8 +33,10 @@ data = vertcat(data{:});
 % Use only gated events with positive fluorescence for calculation
 subset = data.gate_net==1 & data.BL2A>0 & data.YL2A>0;
 
+grp_vars = {'experiment','plate_map','well','strain','reporter','plasmid','Msn2','CLASP','condition','replicate'};
+
 % Calculate MFI (median fluoresence intensity) and cell count per sample
-data_stats = grpstats(data(subset,:),{'experiment','well','strain','reporter','plasmid','Msn2','CLASP','condition','replicate'},...
+data_stats = grpstats(data(subset,:),grp_vars,...
     {'nanmedian','nanmean','nanstd'},'DataVars',{'BL2A','YL2A'});
 data_stats = clean_grpstats(data_stats,false);
 data_stats.Properties.VariableNames('GroupCount') = {'cell_count'};
@@ -85,13 +86,14 @@ data_stats.well_y = char(string(data_stats.well_y ));
 data_stats.well_y = double(data_stats.well_y) - 64;
 
 close all
-clear g; figure('position',[50 50 1400 800]);
-g = gramm('x',data_stats.well_x,'y',data_stats.well_y,'color',data_stats.YL2A);
-g.facet_wrap()
+clear g; figure('position',[50 50 900 900]);
+g = gramm('x',data_stats.well_x,'y',data_stats.well_y,'color',data_stats.cell_count);
+g.facet_grid(data_stats.plate_map,[]);
 g.geom_point();
 g.set_point_options('base_size',16);
-g.set_names('color','');
+g.set_names('color','','column','','row','');
 g.axe_property('XLim',[0,25],'XTick',1:24,'YLim',[0,17],'YTick',1:16,'YTickLabel',['A':'P']','YDir','reverse');
+g.axe_property('XLim',[0,13],'XTick',1:12,'YLim',[0,9],'YTick',1:16,'YTickLabel',['A':'P']','YDir','reverse');
 g.draw();
 
 

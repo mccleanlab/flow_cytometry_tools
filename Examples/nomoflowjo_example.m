@@ -87,12 +87,13 @@ data_stats.well_y = double(data_stats.well_y) - 64;
 
 close all
 clear g; figure('position',[50 50 900 900]);
-g = gramm('x',data_stats.well_x,'y',data_stats.well_y,'color',data_stats.YL2A);
+g = gramm('x',data_stats.well_x,'y',data_stats.well_y,'color',data_stats.cell_count);
 g.facet_grid(data_stats.plate_map,[]);
 g.geom_point();
 g.set_point_options('base_size',16);
 g.set_names('color','','column','','row','');
-g.axe_property('XLim',[0,25],'XTick',1:24,'YLim',[0,17],'YTick',1:16,'YTickLabel',['A':'P']','YDir','reverse');
+g.axe_property('XLim',[0,25],'XTick',1:24,'YLim',[0,17],'YTick',1:16,'YTickLabel',['A':'P']','YDir','reverse'); % If 384 well
+% g.axe_property('XLim',[0,13],'XTick',1:12,'YLim',[0,9],'YTick',1:8,'YTickLabel',['A':'H']','YDir','reverse'); % If 96 well
 g.draw();
 
 

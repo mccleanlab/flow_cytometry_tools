@@ -193,6 +193,8 @@ if ~isempty(f_error_list)
             well = regexp(fcs_files.name{f_error},'[A-P](2[0-4]|1[0-2]|[1-9])','match');
             [i, j] = find(strcmp(plate_map.well,well));
 
+            fcsdat.plate_map(:,1) = categorical(string(plate_map_name));
+            
             field_list = fieldnames(plate_map);
             for n = 1:numel(field_list)
                 fname = field_list{n};

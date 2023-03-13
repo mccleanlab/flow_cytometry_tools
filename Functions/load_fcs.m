@@ -1,4 +1,4 @@
-function [data, experiment_name] = load_fcs(varargin)
+function [data, plate_map_name] = load_fcs(varargin)
 
 % This function loads .fcs files using fca_loadfcs.m by Laslo Balkay
 % https://www.mathworks.com/matlabcentral/fileexchange/9608-fca_readfcs
@@ -44,7 +44,6 @@ parse(p, varargin{:});
 if isfolder(p.Results.folder) % Select from specified folder
     fcs_files = dir(fullfile(p.Results.folder,'*.fcs'));
     fcs_files = struct2table(fcs_files);
-    
 else % Select via UI prompt
     [fcs_filenames, fcs_files_folder] = uigetfile('.fcs','Select .fcs files to analyze','multiselect','on');
 
@@ -77,7 +76,7 @@ if strcmp(p.Results.map, 'plate')
     end
 
     % Get experiment name from plate map
-    [~, experiment_name, ~] = fileparts(fullfile(plate_map_file.folder,plate_map_file.name));
+    [~, plate_map_name, ~] = fileparts(fullfile(plate_map_file.folder,plate_map_file.name));
 
     % Load labels from plate map
     opts = detectImportOptions(fullfile(plate_map_file.folder,plate_map_file.name),'Sheet',p.Results.sheet);
@@ -115,9 +114,6 @@ if strcmp(p.Results.map, 'plate')
         label = erase(label,'map_');
         plate_map.(label) = string(plate_map_raw{i,j});
     end
-
-else
-    experiment_name = fcs_files.folder{1}; % If no plate map, get experiment name folder
 end
 
 % Initialize error tracking variables
@@ -141,15 +137,13 @@ for f = 1:size(fcs_files,1)
             well = regexp(fcs_files.name{f},'[A-P](2[0-4]|1[0-9]|[1-9])','match');
             [i, j] = find(strcmp(plate_map.well,well));
 
-            fcsdat.experiment(:,1) = categorical(string(experiment_name));
+            fcsdat.plate_map(:,1) = categorical(string(plate_map_name));
 
             field_list = fieldnames(plate_map);
             for n = 1:numel(field_list)
                 fname = field_list{n};
                 fcsdat.(fname)(:,1) = categorical(string(plate_map.(fname){i,j}));
             end
-        else
-            fcsdat.experiment(:,1) = categorical(string(experiment_name));
         end
 
         if p.Results.event_limit==Inf || (size(fcsdat,1)<p.Results.event_limit) % Load all events
@@ -199,7 +193,7 @@ if ~isempty(f_error_list)
             well = regexp(fcs_files.name{f_error},'[A-P](2[0-4]|1[0-2]|[1-9])','match');
             [i, j] = find(strcmp(plate_map.well,well));
 
-            fcsdat.plate_map(:,1) = categorical(string(experiment_name));
+            fcsdat.plate_map(:,1) = categorical(string(plate_map_name));
             
             field_list = fieldnames(plate_map);
             for n = 1:numel(field_list)

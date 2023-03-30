@@ -1,4 +1,4 @@
-# nomoflowjo
+# flow_cytometry_tools
 This repository contains functions for processing flow cytometry data in MATLAB
 
 # The following 3rd party tools are required to run the example:
